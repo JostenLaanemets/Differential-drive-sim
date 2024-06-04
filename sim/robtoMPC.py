@@ -1,6 +1,8 @@
 
 import pygame
 import math
+import numpy as np
+from scipy.optimize import minimize
 
 class Envir:
     def __init__(self, dimentions):
@@ -102,6 +104,35 @@ class Robot:
             error_angle -= 360
         return error_angle
     
+
+def mpc_controller(robot, marker, dt):
+    def robot_model(state, u, dt):
+        x, y, theta = state
+        vl, vr = u
+        w = robot.w
+        x += ((vl + vr) / 2) * math.cos(theta) * dt
+        y -= ((vl + vr) / 2) * math.sin(theta) * dt
+        theta += (vr - vl) / w * dt
+        return x, y, theta
+
+    def cost_fn(u):
+        state = [robot.x, robot.y, robot.theta]
+    
+        cost = 0
+        
+        for k in range(horizon):
+            state = robot_model(state, u[k*2:k*2+2], dt)
+            cost += (state[0] - marker[0])**2 + (state[1] - marker[1])**2
+        return cost
+
+    horizon = 5
+    u0 = [robot.vl, robot.vr] * horizon
+    
+    bounds = [(-1000, 1000)] * horizon * 2
+    res = minimize(cost_fn, u0, bounds=bounds)
+    print(res.x[:2])
+    return res.x[:2]
+
 ###PROG###
 pygame.init()
 start=(200,200)
@@ -111,13 +142,15 @@ running= True
 environment= Envir(dims)
 robot = Robot(start,"differentialR.png",0.01*3779.52)
 
-dt = 1e-6
+dt = 0.1
 lasttime= pygame.time.get_ticks()
 
 prevX, prevY = robot.get_position()
 
 #Random markerid testimiseks
-marker = [[400, 300],[500,200],[600,400],[800,600],[500,600],[400,400]]
+marker = [[400, 200],[600,100],[800,200],[900,100],[1000,200],[1200,300],[1400,400],
+          [1400, 600],[1200,700],[1000,800],[800,800],[600,600],[400,400],[200,400]]
+
 
 #Loendur
 i=0
@@ -131,6 +164,8 @@ integral = 0.0
 previous_error = 0.0
 
 while running:
+    for x in marker:
+        environment.draw_marker(x)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running=False
@@ -161,29 +196,32 @@ while running:
 
         base_speed = 100.0  #Algkiirus
         #PID 
-        integral += error * dt
-        derivative = (error - previous_error) / dt
-        previous_error = error
+        #integral += error * dt
+        #derivative = (error - previous_error) / dt
+        #previous_error = error
         
-        control_signal = Kp * error + Ki * integral + Kd * derivative
+        #control_signal = Kp * error + Ki * integral + Kd * derivative
+        
+        vl, vr = mpc_controller(robot, marker[i], dt)
         
         #Vel out
-        left_speed = base_speed + control_signal
-        right_speed = base_speed - control_signal
+        #left_speed = base_speed + control_signal
+        #right_speed = base_speed - control_signal
         #Kiiruse piiramine
         #max_speed = 5 
         #left_speed = max(min(left_speed, max_speed), -max_speed)
         #right_speed = max(min(right_speed, max_speed), -max_speed)
-        robot.vel_out(left_speed, right_speed)
+       
+        robot.vel_out(vl/10, vr/10)
     
     
     ### Marker on thresholdis ###
     Inx = marker[i][0] - x 
     Iny = marker[i][1] - y
     In = math.sqrt(Inx**2+Iny**2)
-    print(In)
-    if In<=10:
+    #print(In)
+    if In<=20:
         i= i+1
-
+    pygame.time.delay(20)
    
 
