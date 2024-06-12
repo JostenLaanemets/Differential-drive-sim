@@ -2,6 +2,8 @@
 import pygame
 import math
 
+from requests import head
+
 class Envir:
     def __init__(self, dimentions):
         self.black  = (0, 0, 0)
@@ -9,7 +11,7 @@ class Envir:
         self.green  = (0, 255, 0)
         self.blue   = (0, 0, 255)
         self.red    = (255,0 ,0)
-        self.yellow = (255, 255, 0)
+        self.lightblue = (0, 255, 255)
 
         self.height = dimentions[0]
         self.width = dimentions[1]
@@ -30,8 +32,8 @@ class Envir:
     
 
     #Markerid
-    def draw_marker(self, position):
-        pygame.draw.circle(self.map, self.red, position, 10)
+    def draw_marker(self, position, color):
+        pygame.draw.circle(self.map, color, position, 5)
 
 
 class Robot:
@@ -117,13 +119,16 @@ lasttime= pygame.time.get_ticks()
 prevX, prevY = robot.get_position()
 
 #Random markerid testimiseks
-marker = [[400, 300],[500,200],[600,400],[800,600],[500,600],[400,400]]
+marker = [[400, 300],[500,200],[700,200],[700,100],[850,100],[850,200],
+          [1000,200],[1100,250],[1175,275],[1200,350],[1175,425],[1100,450],
+          [1000, 450],[900,500],[800,400],[700,500],[600,400],[500,500],
+          [400,500]]
 
 #Loendur
 i=0
 
 #PID 
-Kp= 10.0
+Kp= 0.5
 Ki = 0.01
 Kd = 0.01
 
@@ -147,10 +152,14 @@ while running:
     environment.map.fill(environment.black)
     robot.draw(environment.map)
     environment.writeinfo(int(robot.vl),int(robot.vr), robot.theta)
-    
-    environment.draw_marker(marker[i])
 
+
+    for x in marker:
+        environment.draw_marker(x, environment.lightblue)
+    environment.draw_marker(marker[i],environment.red)
+    
     x, y = robot.get_position()
+    
     #Leiame vektori kui eelmine ja hetke punkt pole samad
     if x != prevX or y != prevY:
 
@@ -158,31 +167,35 @@ while running:
         prevX , prevY = x , y
         marker_heading = robot.calculate_heading(x, y ,marker[i][0],marker[i][1])
         error = robot.calculate_error_angle(heading,marker_heading)
-
-        base_speed = 100.0  #Algkiirus
+        print(heading)
+        
         #PID 
         integral += error * dt
+        integral = max(min(integral, 100), -100)
         derivative = (error - previous_error) / dt
         previous_error = error
-        
         control_signal = Kp * error + Ki * integral + Kd * derivative
-        
+        control_signal = max(min(control_signal, 100), -100)
+
         #Vel out
+        base_speed = 50.0  #Algkiirus
         left_speed = base_speed + control_signal
         right_speed = base_speed - control_signal
+
         #Kiiruse piiramine
         max_speed = 100
         left_speed = max(min(left_speed, max_speed), -max_speed)
         right_speed = max(min(right_speed, max_speed), -max_speed)
-        print(left_speed,right_speed)
         robot.vel_out(left_speed, right_speed)
+        
+        #print(left_speed,right_speed)
     
     
     ### Marker on thresholdis ###
     Inx = marker[i][0] - x 
     Iny = marker[i][1] - y
     In = math.sqrt(Inx**2+Iny**2)
-    print(In)
+    #print(In)
     if In<=10:
         i= i+1
 
