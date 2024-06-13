@@ -111,14 +111,14 @@ class Robot:
     def get_nearest_point(self, markers):
         Iout = 0
 
-        Inx = marker[0][0] - self.x 
-        Iny = marker[0][1] - self.y
+        Inx = markers[0][0] - self.x 
+        Iny = markers[0][1] - self.y
         In = math.sqrt(Inx**2+Iny**2)
         lastIn = In
         
         for p in range(len(markers)):
-            Inx = marker[p][0] - self.x 
-            Iny = marker[p][1] - self.y
+            Inx = markers[p][0] - self.x 
+            Iny = markers[p][1] - self.y
             In = math.sqrt(Inx**2+Iny**2)
             
             if In < lastIn:

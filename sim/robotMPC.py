@@ -1,4 +1,3 @@
-
 import pygame
 import math
 import numpy as np
@@ -17,29 +16,25 @@ class Envir:
         self.width = dimentions[1]
 
         pygame.display.set_caption('Differential drive robot')
-        self.map = pygame.display.set_mode((self.width,
-                                            self.height))
-        self.font = pygame .font.Font("freesansbold.ttf", 50)
+        self.map = pygame.display.set_mode((self.width, self.height))
+        self.font = pygame.font.Font("freesansbold.ttf", 50)
         self.text = self.font.render("default", True, self.white, self.black)
         self.textRect = self.text.get_rect()
         self.textRect.center = (dimentions[1]- 600, dimentions[0]- 100)
 
-
     def writeinfo(self, Vl, Vr, theta):
-        txt= f"Vl = {Vl} Vr = {Vr} theta = {int(math.degrees(theta))}"
-        self.text = self.font .render(txt, True, self.white, self.black)
-        self.map.blit(self.text,self.textRect)
-    
+        txt = f"Vl = {Vl} Vr = {Vr} theta = {int(math.degrees(theta))}"
+        self.text = self.font.render(txt, True, self.white, self.black)
+        self.map.blit(self.text, self.textRect)
 
-    #Markerid
+    # Markerid
     def draw_marker(self, position):
         pygame.draw.circle(self.map, self.red, position, 10)
 
-
 class Robot:
-    def __init__(self,startpos, robotImg, width):
-        self.m2p = 3779.52
-        self.w= width
+    def __init__(self, startpos, robotImg, width):
+        
+        self.w = width
         self.x = startpos[0]
         self.y = startpos[1]
         self.theta = 0
@@ -50,45 +45,43 @@ class Robot:
         self.rotated = self.img
         self.rect = self.rotated.get_rect(center=(self.x, self.y))
     
-    def draw(self,map):
-        map.blit(self.rotated,self.rect)
-    #keyboard control
-    def move(self, event=None,):
+    def draw(self, map):
+        map.blit(self.rotated, self.rect)
+    
+    # Keyboard control
+    def move(self, event=None):
         if event is not None:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
-                    self.vl += 1.0#*self.m2p
+                    self.vl += 1.0
                 elif event.key == pygame.K_UP:
-                    self.vl -= 1.0#*self.m2p
+                    self.vl -= 1.0
                 elif event.key == pygame.K_RIGHT:
-                    self.vr += 1.0#*self.m2p
+                    self.vr += 1.0
                 elif event.key == pygame.K_DOWN:
-                    self.vr -= 1.0#*self.m2p
+                    self.vr -= 1.0
         
-        self.x += ((self.vl + self.vr)/2) * math.cos(self.theta)*dt
-        self.y -= ((self.vl + self.vr)/2) * math.sin(self.theta)*dt
-        self.theta += (self.vr - self.vl)/self.w*dt
+        self.x += ((self.vl + self.vr) / 2) * math.cos(self.theta) * dt
+        self.y -= ((self.vl + self.vr) / 2) * math.sin(self.theta) * dt
+        self.theta += (self.vr - self.vl) / self.w * dt
 
-        self.rotated = pygame.transform.rotozoom(self.img, math.degrees(self.theta),1)
-        self.rect = self.rotated.get_rect(center= (self.x, self.y))
-    #Vel out, mis ss laheb arduinosse
+        self.rotated = pygame.transform.rotozoom(self.img, math.degrees(self.theta), 1)
+        self.rect = self.rotated.get_rect(center=(self.x, self.y))
+
+    # Vel out, mis ss laheb arduinosse
     def vel_out(self, vl, vr):
-        ##############
-        self.vl = vl##
-        self.vr = vr##
-        ##############  
-        self.x += ((self.vl + self.vr)/2) * math.cos(self.theta)*dt
-        self.y -= ((self.vl + self.vr)/2) * math.sin(self.theta)*dt
-        self.theta += (self.vr - self.vl)/self.w*dt
-        self.rotated = pygame.transform.rotozoom(self.img, math.degrees(self.theta),1)
-        self.rect = self.rotated.get_rect(center= (self.x, self.y))
-
+        self.vl = vl
+        self.vr = vr
+        self.x += ((self.vl + self.vr) / 2) * math.cos(self.theta) * dt
+        self.y -= ((self.vl + self.vr) / 2) * math.sin(self.theta) * dt
+        self.theta += (self.vr - self.vl) / self.w * dt
+        self.rotated = pygame.transform.rotozoom(self.img, math.degrees(self.theta), 1)
+        self.rect = self.rotated.get_rect(center=(self.x, self.y))
 
     def get_position(self):
         return self.x, self.y
-    
 
-    #Vektori arvutus
+    # Vektori arvutus
     def calculate_heading(self, x1, y1, x2, y2):
         delta_x = x2 - x1
         delta_y = y2 - y1
@@ -96,14 +89,13 @@ class Robot:
         bearing = math.degrees(bearing)
         heading = (bearing + 360) % 360
         return heading
-    
-    #Nurga errori arvutus
+
+    # Nurga errori arvutus
     def calculate_error_angle(self, current_heading, target_bearing):
         error_angle = (target_bearing - current_heading + 360) % 360
         if error_angle > 180:
             error_angle -= 360
         return error_angle
-    
 
 def mpc_controller(robot, marker, dt):
     def robot_model(state, u, dt):
@@ -117,7 +109,6 @@ def mpc_controller(robot, marker, dt):
 
     def cost_fn(u):
         state = [robot.x, robot.y, robot.theta]
-    
         cost = 0
         
         for k in range(horizon):
@@ -128,240 +119,70 @@ def mpc_controller(robot, marker, dt):
     horizon = 5
     u0 = [robot.vl, robot.vr] * horizon
     
-    bounds = [(-1000, 1000)] * horizon * 2
+    # Set the bounds for the control signals
+    max_control_signal = 100  # Set your desired limit here
+    bounds = [(0, max_control_signal)] * horizon * 2
+
     res = minimize(cost_fn, u0, bounds=bounds)
     print(res.x[:2])
     return res.x[:2]
 
 ###PROG###
 pygame.init()
-start=(200,200)
-dims=(800, 1600)
-running= True
+start = (200, 200)
+dims = (800, 1600)
+running = True
 
-environment= Envir(dims)
-robot = Robot(start,"differentialR.png",0.01*3779.52)
+environment = Envir(dims)
+robot = Robot(start, "differentialR.png", 0.01)
 
 dt = 0.1
-lasttime= pygame.time.get_ticks()
+lasttime = pygame.time.get_ticks()
 
 prevX, prevY = robot.get_position()
 
-#Random markerid testimiseks
-marker = [[400, 200],[600,100],[800,200],[900,100],[1000,200],[1200,300],[1400,400],
-          [1400, 600],[1200,700],[1000,800],[800,800],[600,600],[400,400],[200,400]]
+# Random markerid testimiseks
+marker = [[400, 200], [600, 100], [800, 200], [900, 100], [1000, 200], [1200, 300], [1400, 400],
+          [1400, 600], [1200, 700], [1000, 800], [800, 800], [600, 600], [400, 400], [200, 400]]
 
-
-#Loendur
-i=0
-
-#PID 
-Kp= 0.8
-Ki = 0.01
-Kd = 0.05
-
-integral = 0.0
-previous_error = 0.0
+# Loendur
+i = 0
 
 while running:
     for x in marker:
         environment.draw_marker(x)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            running=False
+            running = False
         robot.move(event)
 
-    #Delta time arvutus    
+    # Delta time arvutus    
     current_time = pygame.time.get_ticks()
-    dt = (current_time-lasttime)/1000
-    #if dt == 0:
-        #dt = 1e-6
+    dt = (current_time - lasttime) / 1000
     lasttime = current_time
     
     pygame.display.update()
     environment.map.fill(environment.black)
     robot.draw(environment.map)
-    environment.writeinfo(int(robot.vl),int(robot.vr), robot.theta)
+    environment.writeinfo(int(robot.vl), int(robot.vr), robot.theta)
     
     environment.draw_marker(marker[i])
 
     x, y = robot.get_position()
-    #Leiame vektori kui eelmine ja hetke punkt pole samad
+    # Leiame vektori kui eelmine ja hetke punkt pole samad
     if x != prevX or y != prevY:
+        heading = robot.calculate_heading(prevX, prevY, x, y)
+        prevX, prevY = x, y
+        marker_heading = robot.calculate_heading(x, y, marker[i][0], marker[i][1])
+        error = robot.calculate_error_angle(heading, marker_heading)
 
-        heading =robot.calculate_heading(prevX, prevY, x, y)
-        prevX , prevY = x , y
-        marker_heading = robot.calculate_heading(x, y ,marker[i][0],marker[i][1])
-        error = robot.calculate_error_angle(heading,marker_heading)
-
-        base_speed = 100.0  #Algkiirus
-        #PID 
-        #integral += error * dt
-        #derivative = (error - previous_error) / dt
-        #previous_error = error
-        
-        #control_signal = Kp * error + Ki * integral + Kd * derivative
-        
         vl, vr = mpc_controller(robot, marker[i], dt)
-        
-        #Vel out
-        #left_speed = base_speed + control_signal
-        #right_speed = base_speed - control_signal
-        #Kiiruse piiramine
-        #max_speed = 5 
-        #left_speed = max(min(left_speed, max_speed), -max_speed)
-        #right_speed = max(min(right_speed, max_speed), -max_speed)
-       
-        robot.vel_out(vl/10, vr/10)
+        robot.vel_out(vl, vr)
     
-    
-    ### Marker on thresholdis ###
+    # Marker on thresholdis
     Inx = marker[i][0] - x 
     Iny = marker[i][1] - y
-    In = math.sqrt(Inx**2+Iny**2)
-    #print(In)
-    if In<=20:
-        i= i+1
-    pygame.time.delay(20)
-   
-
-
-
-
-
-
-
-
-
-#!/usr/bin/env python3
-
-import rospy
-from sensor_msgs.msg import NavSatFix
-import math
-import csv
-import pymap3d as pm
-from std_msgs.msg import Float32
-from scipy.optimize import minimize
-
-class Robot:
-    def __init__(self):
-        rospy.Subscriber('/gps/fix', NavSatFix, self.callback)
-
-        # Publisher for the wheels
-        self.left_pub = rospy.Publisher('Left_vel', Float32, queue_size=10)
-        self.right_pub = rospy.Publisher('Right_vel', Float32, queue_size=10)
-        self.w = 0.54
-        self.theta = 0
-        self.vl = 0.00
-        self.vr = 0.00
-
-    def callback(self, data):
-        self.latitude = data.latitude
-        self.longitude = data.longitude
-        self.altitude = data.altitude
-
-    def get_enu(self):
-        self.enu = pm.geodetic2enu(self.latitude, self.longitude, self.altitude, 58.3428685594, 25.5692475361, 91.357)
-        return self.enu
-
-    def send_vel(self, left, right):
-        left_msg = Float32()
-        left_msg.data = left
-        self.left_pub.publish(left_msg)
-
-        right_msg = Float32()
-        right_msg.data = right
-        self.right_pub.publish(right_msg)
-
-def calculate_heading(x1, y1, x2, y2):
-    delta_x = x2 - x1
-    delta_y = y2 - y1
-    bearing = math.atan2(delta_y, delta_x)
-    bearing = math.degrees(bearing)
-    return bearing
-
-def calculate_error_angle(current_heading, target_bearing):
-    error_angle = (target_bearing - current_heading + 360) % 360
-    if error_angle > 180:
-        error_angle -= 360
-    return error_angle
-
-def mpc_controller(robot, x, y, marker, dt):
-    def robot_model(state, u, dt):
-        x, y, theta = state
-        vl, vr = u
-        w = robot.w
-        x += ((vl + vr) / 2) * math.cos(theta) * dt
-        y -= ((vl + vr) / 2) * math.sin(theta) * dt
-        theta += (vr - vl) / w * dt
-        return x, y, theta
-
-    def cost_fn(u):
-        state = [x, y, robot.theta]
-        cost = 0
-        for k in range(horizon):
-            state = robot_model(state, u[k*2:k*2+2], dt)
-            cost += (state[0] - marker[0])**2 + (state[1] - marker[1])**2
-        return cost
-
-    horizon = 5
-    u0 = [robot.vl, robot.vr] * horizon
-
-    # Speed constraints for the wheels
-    max_wheel_speed = 1.0  # Replace with your max wheel speed
-    bounds = [(-max_wheel_speed, max_wheel_speed)] * horizon * 2
-
-    res = minimize(cost_fn, u0, bounds=bounds)
-    return res.x[:2]
-
-lasttime = 0
-i = 0
-previous_error = 0.0
-dt = 1e-6
-
-points = []
-with open('/home/roisten/catkin_ws/recordings/11-06-2024-10-52.csv', newline='') as csvfile:
-    spamreader = csv.reader(csvfile, quotechar='|')
-    for row in spamreader:
-        x = float(row[0])
-        y = float(row[1])
-        z = float(row[2])
-        points.append([x, y, z])
-
-robot = Robot()
-rospy.init_node('Robot', anonymous=True)
-
-while not rospy.is_shutdown():
-    try:
-        prev = robot.get_enu()
-        prevX, prevY, prevZ = prev
-
-        current_time = rospy.get_time()
-        dt = (current_time - lasttime)
-        lasttime = current_time
-        x, y, z = robot.get_enu()
-
-        if x != prevX or y != prevY:
-            heading = calculate_heading(prevX, prevY, x, y)
-            prevX, prevY = x, y
-            marker_heading = calculate_heading(x, y, points[i][0], points[i][1])
-            error = calculate_error_angle(heading, marker_heading)
-            print("error: ", error)
-
-            vl, vr = mpc_controller(robot, x, y, points[i], dt)
-
-            # Send velocity commands to the robot
-            robot.send_vel(vl, vr)
-            print("Index:", i)
-
-            # Threshold to move to the next point
-            Inx = points[i][0] - x
-            Iny = points[i][1] - y
-            In = math.sqrt(Inx**2 + Iny**2)
-            print(In)
-            if In <= 4:
-                i += 1
-
-    except KeyboardInterrupt:
-        print("Shutting down")
-        break
+    In = math.sqrt(Inx**2 + Iny**2)
+    if In <= 20:
+        i = (i + 1) % len(marker)
+    pygame.time.delay(10)
