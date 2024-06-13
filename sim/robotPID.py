@@ -11,7 +11,7 @@ class Envir:
         self.green  = (0, 255, 0)
         self.blue   = (0, 0, 255)
         self.red    = (255,0 ,0)
-        self.lightblue = (0, 255, 255)
+        self.lightblue = (0, 200, 255)
 
         self.height = dimentions[0]
         self.width = dimentions[1]
@@ -34,6 +34,10 @@ class Envir:
     #Markerid
     def draw_marker(self, position, color):
         pygame.draw.circle(self.map, color, position, 5)
+
+    def draw_path(self, path):
+        if len(path) > 1:
+            pygame.draw.lines(self.map, self.green, False, path, 2)
 
 
 class Robot:
@@ -104,9 +108,27 @@ class Robot:
             error_angle -= 360
         return error_angle
     
+    def get_nearest_point(self, markers):
+        Iout = 0
+
+        Inx = marker[0][0] - self.x 
+        Iny = marker[0][1] - self.y
+        In = math.sqrt(Inx**2+Iny**2)
+        lastIn = In
+        
+        for p in range(len(markers)):
+            Inx = marker[p][0] - self.x 
+            Iny = marker[p][1] - self.y
+            In = math.sqrt(Inx**2+Iny**2)
+            
+            if In < lastIn:
+                lastIn = In
+                Iout = p
+        return Iout
+    
 ###PROG###
 pygame.init()
-start=(200,200)
+start=(500,600)
 dims=(800, 1600)
 running= True
 
@@ -124,8 +146,11 @@ marker = [[400, 300],[500,200],[700,200],[700,100],[850,100],[850,200],
           [1000, 450],[900,500],[800,400],[700,500],[600,400],[500,500],
           [400,500]]
 
+
+path = [(start[0], start[1])]
 #Loendur
 i=0
+i = robot.get_nearest_point(marker)
 
 #PID 
 Kp= 0.5
@@ -140,7 +165,8 @@ while running:
         if event.type == pygame.QUIT:
             running=False
         robot.move(event)
-
+    if i == len(marker):
+        i = 0
     #Delta time arvutus    
     current_time = pygame.time.get_ticks()
     dt = (current_time-lasttime)/1000
@@ -153,21 +179,25 @@ while running:
     robot.draw(environment.map)
     environment.writeinfo(int(robot.vl),int(robot.vr), robot.theta)
 
+    
 
     for x in marker:
         environment.draw_marker(x, environment.lightblue)
     environment.draw_marker(marker[i],environment.red)
     
     x, y = robot.get_position()
+    path.append((x, y))
+    environment.draw_path(path)
     
     #Leiame vektori kui eelmine ja hetke punkt pole samad
     if x != prevX or y != prevY:
 
+        
         heading =robot.calculate_heading(prevX, prevY, x, y)
         prevX , prevY = x , y
         marker_heading = robot.calculate_heading(x, y ,marker[i][0],marker[i][1])
         error = robot.calculate_error_angle(heading,marker_heading)
-        print(heading)
+        #print(heading)
         
         #PID 
         integral += error * dt
